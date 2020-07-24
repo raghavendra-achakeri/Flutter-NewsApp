@@ -13,16 +13,17 @@ void main() {
   runApp(MyApp());
 }
 
-void hiverun() async {
-  //Hive.init('somePath') -> not needed in browser
-  await Hive.initFlutter();
-  Hive.deleteBoxFromDisk("bookmarks");
-}
-
 class MyApp extends StatelessWidget {
   MyApp() {
-    hiverun();
+    initHive();
   }
+
+  void initHive() async {
+    //Hive.init('somePath') -> not needed in browser
+    await Hive.initFlutter();
+    //   Hive.deleteBoxFromDisk("bookmarks");
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -52,6 +53,9 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  var callBackData;
+  Future bookarkdata;
+  List bookmarks;
   Map result = new Map();
   DateTime newDate;
   String currentDate;
@@ -71,7 +75,7 @@ class _MyHomePageState extends State<MyHomePage> {
   };
 
   bool _enabled = true;
-
+  BuildContext _context;
   ScrollController _scrollController = ScrollController();
   int selectedTab;
   List<Widget> _children = [];
@@ -150,10 +154,10 @@ class _MyHomePageState extends State<MyHomePage> {
     String articleDate = formatDate(dateObj, [M, ' ', d]);
 
     return InkWell(
-      onTap: () {
-        Navigator.pushNamed(
+      onTap: () async {
+        callBackData = await Navigator.pushNamed(
           context,
-          "DetailedNewsPage",
+          'DetailedNewsPage',
           arguments: article,
         );
       },
@@ -294,7 +298,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget newsFeed() {
-    print(result);
+    // print(result);
 
     if (result["articles"] == null) {
       return ListView.builder(
@@ -403,9 +407,128 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  Widget fetchBookmarkFeed(int index) {
+    Map article = bookmarks[index];
+
+    DateTime dateObj = DateTime.parse(article["publishedAt"]);
+
+    String articleDate = formatDate(dateObj, [M, ' ', d]);
+
+    return InkWell(
+      onTap: () {
+        Navigator.pushNamed(
+          context,
+          "DetailedNewsPage",
+          arguments: article,
+        );
+      },
+      child: Container(
+        padding: EdgeInsets.only(bottom: 10),
+        child: Row(
+          mainAxisSize: MainAxisSize.max,
+          children: <Widget>[
+            Container(
+              width: 120,
+              height: 100,
+              padding: EdgeInsets.all(7.0),
+              child: Hero(
+                tag: article["title"] ?? "otherName",
+                child: ClipRRect(
+                  child: CachedNetworkImage(
+                    fit: BoxFit.fitHeight,
+                    placeholder: (context, url) =>
+                        Image.asset('images/placeholder.png'),
+                    imageUrl: article["urlToImage"] ?? " ",
+                    errorWidget: (context, url, error) =>
+                        Image.asset('images/placeholder.png'),
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              child: Column(children: <Widget>[
+                Container(
+                  padding: EdgeInsets.only(left: 8, right: 8),
+                  child: Text(
+                    article["title"] ?? " ",
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: EdgeInsets.all(8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: <Widget>[
+                      Expanded(
+                        child: Text(
+                          article["author"] ?? " ",
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: Color.fromRGBO(150, 150, 150, 1),
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: EdgeInsets.only(right: 10),
+                        child: Text(
+                          articleDate ?? " ",
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: Color.fromRGBO(150, 150, 150, 1),
+                          ),
+                        ),
+                      )
+                    ],
+                  ),
+                ),
+              ]),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget runderEachBookmark(BuildContext context, AsyncSnapshot snapshot) {
+    _context = context;
+    // print("future data ->>> ${snapshot.data}");
+    if (snapshot.data == null) {
+      return ListView.builder(
+          shrinkWrap: true,
+          scrollDirection: Axis.vertical,
+          itemCount: 7,
+          itemBuilder: (context, index) {
+            return loadShimmerEffect(index);
+          });
+    }
+    return ListView.builder(
+        shrinkWrap: true,
+        scrollDirection: Axis.vertical,
+        itemCount: snapshot.data.length,
+        itemBuilder: (context, index) {
+          return fetchBookmarkFeed(index);
+        });
+  }
+
+  Future<List> hiverun() async {
+    var box = await Hive.openBox('bookmarks');
+    bookmarks = box.get("bookmarks") ?? [];
+    return bookmarks;
+  }
+
   Widget bookmarkPage() {
-    return Container(
-      child: Text("book mark page"),
+    return FutureBuilder(
+      future: hiverun(),
+      builder: (context, snapshot) {
+        return runderEachBookmark(context, snapshot);
+      },
     );
   }
 
@@ -436,7 +559,7 @@ class _MyHomePageState extends State<MyHomePage> {
           setState(() {
             selectedTab = index;
           });
-          print(selectedTab);
+          // print(selectedTab);
         },
         items: [
           BottomNavigationBarItem(

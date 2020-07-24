@@ -3,26 +3,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:date_format/date_format.dart';
 import 'package:hive/hive.dart';
 
-void hiverun(Map article) async {
-  //Hive.init('somePath') -> not needed in browser
-  List bookmarks;
-
-  var box = await Hive.openBox('bookmarks');
-  bookmarks = box.get("bookmarks") ?? [];
-  bool doesBookmarkExist = false;
-  bookmarks.forEach((element) {
-    if (element["publishedAt"] == article["publishedAt"]) {
-      doesBookmarkExist = true;
-    }
-  });
-  if (!doesBookmarkExist) {
-    bookmarks.add(article);
-  }
-  box.put("bookmarks", bookmarks);
-  bookmarks = box.get("bookmarks");
-  print(bookmarks.length.toString());
-}
-
 class NewsDetailPage extends StatefulWidget {
   // NewsDetailPage({Key key}) : super(key: key);
 
@@ -35,14 +15,67 @@ class NewsDetailPage extends StatefulWidget {
 }
 
 class _NewsDetailPageState extends State<NewsDetailPage> {
+  Map article;
+  List bookmarks;
+  bool doesBookmarkExist = false;
+  var hiveBox;
+
   @override
   void initState() {
     super.initState();
+    Future.delayed(Duration.zero, () {
+      setState(() {
+        article = ModalRoute.of(context).settings.arguments as Map;
+        print(article);
+        checkBookmark(article);
+      });
+    });
+  }
+
+  void checkBookmark(Map article) async {
+    print("check bookmark $doesBookmarkExist");
+
+    hiveBox = await Hive.openBox('bookmarks');
+    bookmarks = hiveBox.get("bookmarks") ?? [];
+    bookmarks.forEach((element) {
+      if (element["publishedAt"] == article["publishedAt"]) {
+        doesBookmarkExist = true;
+      }
+    });
+    setState(() {
+      doesBookmarkExist = doesBookmarkExist;
+    });
+  }
+
+  void hiverun(Map article) async {
+    //Hive.init('somePath') -> not needed in browser
+    bookmarks = hiveBox.get("bookmarks") ?? [];
+    if (!doesBookmarkExist) {
+      bookmarks.add(article);
+      setState(() {
+        doesBookmarkExist = true;
+      });
+    } else {
+      bookmarks.asMap().forEach((index, element) {
+        if (element["publishedAt"] == article["publishedAt"]) {
+          print("Removing $index");
+          setState(() {
+            doesBookmarkExist = false;
+          });
+          bookmarks.removeAt(index);
+        }
+      });
+    }
+    hiveBox.put("bookmarks", bookmarks);
+    bookmarks = hiveBox.get("bookmarks");
+    setState(() {
+      doesBookmarkExist = doesBookmarkExist;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    Map article = ModalRoute.of(context).settings.arguments as Map;
+    article = ModalRoute.of(context).settings.arguments as Map;
     DateTime dateObj = DateTime.parse(article["publishedAt"]);
     String articleDate = formatDate(
       dateObj,
@@ -87,8 +120,8 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                           child: Container(
                             child: Icon(
                               Icons.chevron_left,
-                              size: 40.0,
-                              color: Color.fromRGBO(255, 255, 255, 1),
+                              size: 43.0,
+                              color: Color.fromRGBO(168, 165, 165, 1),
                             ),
                           ),
                         ),
@@ -96,13 +129,21 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                           onTap: () {
                             hiverun(article);
                           },
-                          child: Container(
-                            child: Icon(
-                              Icons.bookmark,
-                              size: 30.0,
-                              color: Color.fromRGBO(255, 255, 255, 1),
-                            ),
-                          ),
+                          child: doesBookmarkExist == false
+                              ? Container(
+                                  child: Icon(
+                                    Icons.bookmark_border,
+                                    size: 35.0,
+                                    color: Color.fromRGBO(168, 165, 165, 1),
+                                  ),
+                                )
+                              : Container(
+                                  child: Icon(
+                                    Icons.bookmark,
+                                    size: 35.0,
+                                    color: Color.fromRGBO(0, 128, 255, 1),
+                                  ),
+                                ),
                         ),
                       ],
                     ),
