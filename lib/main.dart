@@ -4,7 +4,6 @@ import 'package:date_format/date_format.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import "./NewsDetailPage.dart";
-
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -19,9 +18,8 @@ class MyApp extends StatelessWidget {
   }
 
   void initHive() async {
-    //Hive.init('somePath') -> not needed in browser
     await Hive.initFlutter();
-    //   Hive.deleteBoxFromDisk("bookmarks");
+    // Hive.deleteBoxFromDisk("bookmarks");
   }
 
   @override
@@ -35,7 +33,7 @@ class MyApp extends StatelessWidget {
           Theme.of(context).textTheme,
         ),
       ),
-      home: MyHomePage(title: 'HomePage'),
+      home: MyHomePage(),
       routes: {
         "DetailedNewsPage": (context) => NewsDetailPage(),
       },
@@ -44,23 +42,20 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title}) : super(key: key);
-
-  final String title;
+  MyHomePage({
+    Key key,
+  }) : super(key: key);
 
   @override
   _MyHomePageState createState() => _MyHomePageState();
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  var callBackData;
-  Future bookarkdata;
   List bookmarks;
   Map result = new Map();
-  DateTime newDate;
-  String currentDate;
+
   int currentSlectedTab;
-  String currentAPI;
+
   Map apiList = {
     "otherNewsFeed":
         "https://newsapi.org/v2/top-headlines?country=in&country=us&category=general&pageSize=100&apiKey=1e1ab6437036410b83cf396359f9f052",
@@ -74,21 +69,15 @@ class _MyHomePageState extends State<MyHomePage> {
         "https://newsapi.org/v2/top-headlines?country=in&country=us&category=business&pageSize=100&apiKey=1e1ab6437036410b83cf396359f9f052"
   };
 
-  bool _enabled = true;
-  BuildContext _context;
   ScrollController _scrollController = ScrollController();
   int selectedTab;
-  List<Widget> _children = [];
+
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
     currentSlectedTab = 1;
     selectedTab = 0;
-    _children = [homePage(), bookmarkPage()];
-    // newDate = DateTime.now();
-    // currentDate = newDate.toString().substring(0, 10);
-
     getHttp(apiList["otherNewsFeed"]);
   }
 
@@ -99,6 +88,64 @@ class _MyHomePageState extends State<MyHomePage> {
     });
 
     getHttp(url);
+  }
+
+  Widget homePage() {
+    return Container(
+      constraints: BoxConstraints.expand(),
+      child: Column(
+        children: <Widget>[
+          Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: <Widget>[
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 15,
+                ),
+                child: Text(
+                  "Daily News",
+                  style: TextStyle(
+                    fontSize: 30,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              )
+            ],
+          ),
+          Container(
+            decoration: BoxDecoration(
+                color: Color.fromRGBO(250, 250, 250, 1),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color.fromRGBO(200, 200, 200, 0.5),
+                    offset: const Offset(0.0, 2.5),
+                    blurRadius: 1.0,
+                    spreadRadius: 0.1,
+                  ),
+                ]),
+            height: 50,
+            padding: EdgeInsets.only(bottom: 10),
+            child: ListView(
+              controller: _scrollController,
+              scrollDirection: Axis.horizontal,
+              children: <Widget>[
+                tabViewItem("For You", apiList["otherNewsFeed"], 1),
+                tabViewItem("Science", apiList["ScinceNewsFeed"], 2),
+                tabViewItem("Business", apiList["businessNewsFeed"], 3),
+                tabViewItem("Tech", apiList["techNewsFeed"], 4),
+                tabViewItem("Sports", apiList["sportsNewsFeed"], 5)
+              ],
+            ),
+          ),
+          Expanded(
+            child: Container(
+              child: newsFeed(),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget tabViewItem(String itemName, String url, int index) {
@@ -118,7 +165,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   fontSize: 23,
                   color: currentSlectedTab == index
                       ? Color.fromRGBO(50, 50, 50, 1)
-                      : Color.fromRGBO(200, 200, 195, 1),
+                      : Color.fromRGBO(170, 170, 170, 1),
                 ),
               ),
             ),
@@ -126,7 +173,6 @@ class _MyHomePageState extends State<MyHomePage> {
               width: 40,
               padding: EdgeInsets.all(2),
               decoration: BoxDecoration(
-                // color: Colors.yellow,
                 border: Border(
                   bottom: currentSlectedTab == index
                       ? BorderSide(
@@ -154,12 +200,13 @@ class _MyHomePageState extends State<MyHomePage> {
     String articleDate = formatDate(dateObj, [M, ' ', d]);
 
     return InkWell(
-      onTap: () async {
-        callBackData = await Navigator.pushNamed(
+      onTap: () {
+        Navigator.pushNamed(
           context,
           'DetailedNewsPage',
           arguments: article,
         );
+        ;
       },
       child: Container(
         padding: EdgeInsets.only(bottom: 10),
@@ -240,7 +287,6 @@ class _MyHomePageState extends State<MyHomePage> {
       Response response = await Dio().get(apiURL);
       setState(() {
         result = response.data;
-        _enabled = false;
       });
     } catch (e) {
       print(e);
@@ -298,8 +344,6 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget newsFeed() {
-    // print(result);
-
     if (result["articles"] == null) {
       return ListView.builder(
           shrinkWrap: true,
@@ -319,99 +363,9 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  Widget homePage() {
-    return Container(
-      constraints: BoxConstraints.expand(),
-      child: Column(
-        children: <Widget>[
-          Container(
-            padding: EdgeInsets.only(top: 15, bottom: 0, left: 12, right: 10),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: <Widget>[
-                Container(
-                  child: InkWell(
-                    onTap: () {},
-                    child: Icon(
-                      Icons.dashboard,
-                      color: Color.fromRGBO(28, 28, 28, 1),
-                      size: 40.0,
-                    ),
-                  ),
-                ),
-                Container(
-                  child: InkWell(
-                    onTap: () {},
-                    child: Icon(
-                      Icons.search,
-                      color: Color.fromRGBO(28, 28, 28, 1),
-                      size: 40.0,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: <Widget>[
-              Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: 15,
-                  vertical: 15,
-                ),
-                child: Text(
-                  "Daily News",
-                  style: TextStyle(
-                    fontSize: 35,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              )
-            ],
-          ),
-          Container(
-            decoration: BoxDecoration(
-                color: Color.fromRGBO(250, 250, 250, 1),
-                boxShadow: [
-                  BoxShadow(
-                    color: Color.fromRGBO(200, 200, 200, 0.5),
-                    offset: const Offset(0.0, 2.5),
-                    blurRadius: 1.0,
-                    spreadRadius: 0.1,
-                  ),
-                ]),
-            height: 50,
-            //padding: EdgeInsets.all(30),
-            padding: EdgeInsets.only(bottom: 10),
-            child: ListView(
-              controller: _scrollController,
-              scrollDirection: Axis.horizontal,
-              children: <Widget>[
-                tabViewItem("For You", apiList["otherNewsFeed"], 1),
-                tabViewItem("Science", apiList["ScinceNewsFeed"], 2),
-                tabViewItem("Business", apiList["businessNewsFeed"], 3),
-                tabViewItem("Tech", apiList["techNewsFeed"], 4),
-                tabViewItem("Sports", apiList["sportsNewsFeed"], 5)
-              ],
-            ),
-          ),
-          Expanded(
-            child: Container(
-              child: newsFeed(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget fetchBookmarkFeed(int index) {
     Map article = bookmarks[index];
-
     DateTime dateObj = DateTime.parse(article["publishedAt"]);
-
     String articleDate = formatDate(dateObj, [M, ' ', d]);
 
     return InkWell(
@@ -497,8 +451,6 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget runderEachBookmark(BuildContext context, AsyncSnapshot snapshot) {
-    _context = context;
-    // print("future data ->>> ${snapshot.data}");
     if (snapshot.data == null) {
       return ListView.builder(
           shrinkWrap: true,
@@ -507,6 +459,21 @@ class _MyHomePageState extends State<MyHomePage> {
           itemBuilder: (context, index) {
             return loadShimmerEffect(index);
           });
+    } else if (snapshot.data.length == 0) {
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          Container(
+            padding: EdgeInsets.all(10),
+            child: new Image.asset(
+              'images/notfound.png',
+              height: 300.0,
+              width: 300,
+              fit: BoxFit.cover,
+            ),
+          ),
+        ],
+      );
     }
     return ListView.builder(
         shrinkWrap: true,
@@ -524,17 +491,50 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget bookmarkPage() {
-    return FutureBuilder(
-      future: hiverun(),
-      builder: (context, snapshot) {
-        return runderEachBookmark(context, snapshot);
-      },
+    return Container(
+      child: Column(
+        children: <Widget>[
+          Container(
+            decoration: BoxDecoration(
+                color: Color.fromRGBO(250, 250, 250, 1),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color.fromRGBO(200, 200, 200, 0.5),
+                    offset: const Offset(0.0, 2.5),
+                    blurRadius: 1.0,
+                    spreadRadius: 0.1,
+                  ),
+                ]),
+            padding: EdgeInsets.symmetric(
+              horizontal: 10,
+              vertical: 15,
+            ),
+            alignment: AlignmentDirectional.centerStart,
+            child: Text("Bookmarks",
+                style: TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                )),
+          ),
+          Expanded(
+            child: Container(
+              child: FutureBuilder(
+                future: hiverun(),
+                builder: (context, snapshot) {
+                  return runderEachBookmark(context, snapshot);
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Builder(
           builder: (context) => selectedTab == 0 ? homePage() : bookmarkPage(),
@@ -546,20 +546,16 @@ class _MyHomePageState extends State<MyHomePage> {
         showSelectedLabels: false,
         showUnselectedLabels: false,
         onTap: (int index) {
-          // print(selectedTab);
           if (index == 0) {
             setState(() {
               currentSlectedTab = 1;
             });
             updateNewsAPI(apiList["otherNewsFeed"], 1);
             tabViewItem("For You", apiList["otherNewsFeed"], 1);
-
-            // _scrollController.jumpTo(1);
           }
           setState(() {
             selectedTab = index;
           });
-          // print(selectedTab);
         },
         items: [
           BottomNavigationBarItem(

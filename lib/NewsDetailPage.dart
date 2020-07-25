@@ -4,8 +4,6 @@ import 'package:date_format/date_format.dart';
 import 'package:hive/hive.dart';
 
 class NewsDetailPage extends StatefulWidget {
-  // NewsDetailPage({Key key}) : super(key: key);
-
   NewsDetailPage({
     Key key,
   }) : super(key: key);
@@ -26,15 +24,12 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
     Future.delayed(Duration.zero, () {
       setState(() {
         article = ModalRoute.of(context).settings.arguments as Map;
-        print(article);
         checkBookmark(article);
       });
     });
   }
 
   void checkBookmark(Map article) async {
-    print("check bookmark $doesBookmarkExist");
-
     hiveBox = await Hive.openBox('bookmarks');
     bookmarks = hiveBox.get("bookmarks") ?? [];
     bookmarks.forEach((element) {
@@ -47,8 +42,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
     });
   }
 
-  void hiverun(Map article) async {
-    //Hive.init('somePath') -> not needed in browser
+  void hiveBookmark(Map article) async {
     bookmarks = hiveBox.get("bookmarks") ?? [];
     if (!doesBookmarkExist) {
       bookmarks.add(article);
@@ -58,7 +52,6 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
     } else {
       bookmarks.asMap().forEach((index, element) {
         if (element["publishedAt"] == article["publishedAt"]) {
-          print("Removing $index");
           setState(() {
             doesBookmarkExist = false;
           });
@@ -81,8 +74,6 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
       dateObj,
       [M, ' ', d],
     );
-
-    // print(article["author"]);
 
     return Scaffold(
       body: SafeArea(
@@ -112,36 +103,53 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: <Widget>[
-                        // padding: EdgeInsets.only(top:15,left:10),
                         InkWell(
                           onTap: () {
                             Navigator.pop(context, "DetailedNewsPage");
                           },
                           child: Container(
+                            height: 38,
+                            width: 38,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(25),
+                              color: Colors.black.withOpacity(0.35),
+                            ),
                             child: Icon(
                               Icons.chevron_left,
-                              size: 43.0,
-                              color: Color.fromRGBO(168, 165, 165, 1),
+                              size: 33.0,
+                              color: Colors.white,
                             ),
                           ),
                         ),
                         InkWell(
                           onTap: () {
-                            hiverun(article);
+                            hiveBookmark(article);
                           },
                           child: doesBookmarkExist == false
                               ? Container(
+                                  height: 40,
+                                  width: 40,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(25),
+                                    color: Colors.black.withOpacity(0.35),
+                                  ),
                                   child: Icon(
                                     Icons.bookmark_border,
-                                    size: 35.0,
-                                    color: Color.fromRGBO(168, 165, 165, 1),
+                                    size: 25.0,
+                                    color: Colors.white,
                                   ),
                                 )
                               : Container(
+                                  height: 40,
+                                  width: 40,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(30),
+                                    color: Colors.black.withOpacity(0.35),
+                                  ),
                                   child: Icon(
                                     Icons.bookmark,
-                                    size: 35.0,
-                                    color: Color.fromRGBO(0, 128, 255, 1),
+                                    size: 25,
+                                    color: Colors.white,
                                   ),
                                 ),
                         ),
@@ -151,7 +159,8 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                 ],
               ),
               Container(
-                padding: EdgeInsets.all(10),
+                padding:
+                    EdgeInsets.only(top: 15, left: 10, right: 10, bottom: 10),
                 child: Text(
                   article["title"] ?? " ",
                   style: TextStyle(
@@ -192,7 +201,9 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                 child: Text(
                   article["description"] ?? "",
                   style: TextStyle(
-                      fontSize: 19, color: Colors.black.withOpacity(0.5)),
+                    fontSize: 19,
+                    color: Colors.black.withOpacity(0.5),
+                  ),
                 ),
               ),
             ],
