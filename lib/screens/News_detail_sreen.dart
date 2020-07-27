@@ -1,3 +1,4 @@
+import 'package:NewsApp/services/hive_services.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:date_format/date_format.dart';
@@ -17,6 +18,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
   List bookmarks;
   bool doesBookmarkExist = false;
   var hiveBox;
+  var hiveService = HiveService();
 
   @override
   void initState() {
@@ -44,23 +46,23 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
 
   void hiveBookmark(Map article) async {
     bookmarks = hiveBox.get("bookmarks") ?? [];
+    print(!doesBookmarkExist);
+    bool bookmarkStatus;
     if (!doesBookmarkExist) {
-      bookmarks.add(article);
+      bookmarkStatus =
+          await hiveService.addToBookmark(article, doesBookmarkExist);
       setState(() {
-        doesBookmarkExist = true;
+        doesBookmarkExist = bookmarkStatus;
       });
     } else {
-      bookmarks.asMap().forEach((index, element) {
-        if (element["publishedAt"] == article["publishedAt"]) {
-          setState(() {
-            doesBookmarkExist = false;
-          });
-          bookmarks.removeAt(index);
-        }
+      bookmarkStatus =
+          await hiveService.removeFromBookmark(article, doesBookmarkExist);
+      setState(() {
+        doesBookmarkExist = bookmarkStatus;
       });
     }
-    hiveBox.put("bookmarks", bookmarks);
-    bookmarks = hiveBox.get("bookmarks");
+
+    bookmarks = hiveService.getBookmarks();
     setState(() {
       doesBookmarkExist = doesBookmarkExist;
     });
